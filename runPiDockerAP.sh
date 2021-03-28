@@ -72,7 +72,7 @@ _create_or_start_container() {
 	elif docker inspect $CONTAINER >/dev/null 2>&1; then
 		echo "* starting container '$CONTAINER'"
 		docker start $CONTAINER || exit 1
-
+	
 	else
 		#_init_network
 		echo "* creating container $CONTAINER"
@@ -83,7 +83,7 @@ _create_or_start_container() {
 			--sysctl net.netfilter.nf_conntrack_acct=1 \
 			--sysctl net.ipv6.conf.all.disable_ipv6=0 \
 			--sysctl net.ipv6.conf.all.forwarding=1 \
-			--name $CONTAINER -it $IMAGE:$TAG /bin/bash >/dev/null
+			--name $CONTAINER -it --privileged $IMAGE:$TAG /bin/bash >/dev/null
 		#docker network connect $WAN_NAME $CONTAINER
 
 		_gen_config
@@ -102,18 +102,24 @@ _prepare_wifi() {
 }
 
 _prepare_network() {
+	echo "* prepares network"
 	docker exec -i $CONTAINER sh -c "ip addr add ${WIFI_IP} dev ${WIFI_INTERFACE}"
 	docker exec -i $CONTAINER sh -c "ip link set dev ${WIFI_INTERFACE} up"
 }
 
 _reload_fw() {
+	echo "* flushing fw"
 	docker exec -i $CONTAINER sh -c "iptables -t nat -F"	
 	docker exec -i $CONTAINER sh -c "iptables -t nat -A POSTROUTING -s ${WIFI_NET} ! -d ${WIFI_NET} -j MASQUERADE"
 	docker exec -i $CONTAINER sh -c "echo 1 /proc/sys/net/ipv4/ip_forward"
 }
 
 _start_servers() {
-	docker exec -i $CONTAINER sh -c '/usr/sbin/hostapd /etc/hostapd/hostapd.conf &'
+	sleep 30
+	echo "* start hostapd"
+	docker exec -i $CONTAINER sh -c '/usr/sbin/hostapd -B /etc/hostapd/hostapd.conf'
+	sleep 30	
+	echo "* start dnsmasq"
 	docker exec -i $CONTAINER sh -c '/usr/sbin/dnsmasq'
 }
 

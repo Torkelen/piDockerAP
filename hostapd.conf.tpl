@@ -1,6 +1,5 @@
 ctrl_interface=/var/run/hostapd
 ctrl_interface_group=0
-driver=nl80211
 interface=${WIFI_INTERFACE}
 ssid=${AP_SSID}
 wpa_passphrase=${AP_PASSPHRASE}
